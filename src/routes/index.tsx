@@ -71,6 +71,13 @@ const projects = [
   { name: "Flask Task API", level: "Web API", file: "app.py", status: "API online", lines: ["@app.post('/tasks')", "def create_task():", "    return task_service.create()", "", "POST /tasks  ·  201 CREATED"] },
 ];
 
+const navItems = [
+  { label: "Features", id: "how" },
+  { label: "Learning Paths", id: "paths" },
+  { label: "Projects", id: "projects" },
+  { label: "How It Works", id: "loop" },
+];
+
 function Brand() {
   return (
     <a href="#top" className="group flex items-center gap-2.5" aria-label="PyCademy home">
@@ -89,6 +96,11 @@ function LandingPage() {
   const [activePath, setActivePath] = useState(0);
   const [tutorStep, setTutorStep] = useState(0);
   const [activeProject, setActiveProject] = useState(2);
+  const activeStageData = stages[activeStage] ?? stages[0];
+  const activePathData = paths[activePath] ?? paths[0];
+  const activeProjectData = projects[activeProject] ?? projects[0];
+
+  if (!activeStageData || !activePathData || !activeProjectData) return null;
 
   useEffect(() => {
     const timer = window.setInterval(() => setActiveStage((value) => (value + 1) % stages.length), 4000);
@@ -115,8 +127,8 @@ function LandingPage() {
         <nav className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 lg:px-10" aria-label="Main navigation">
           <Brand />
           <div className="hidden items-center gap-8 md:flex">
-            {[["Features", "how"], ["Learning Paths", "paths"], ["Projects", "projects"], ["How It Works", "loop"]].map(([label, id]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="nav-link">{label}</button>
+            {navItems.map((item) => (
+              <button key={item.id} onClick={() => scrollTo(item.id)} className="nav-link">{item.label}</button>
             ))}
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -130,8 +142,8 @@ function LandingPage() {
         {menuOpen && (
           <div className="border-t border-border bg-background px-5 py-5 md:hidden">
             <div className="flex flex-col gap-1">
-              {[["Features", "how"], ["Learning Paths", "paths"], ["Projects", "projects"], ["How It Works", "loop"]].map(([label, id]) => (
-                <button key={id} onClick={() => scrollTo(id)} className="mobile-nav-link">{label}<ChevronRight /></button>
+              {navItems.map((item) => (
+                <button key={item.id} onClick={() => scrollTo(item.id)} className="mobile-nav-link">{item.label}<ChevronRight /></button>
               ))}
               <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4">
                 <Button variant="technical" onClick={() => scrollTo("final")}>Log In</Button>
@@ -219,8 +231,8 @@ function LandingPage() {
                 })}
               </div>
               <div className="stage-detail">
-                <div className="font-mono text-xs text-primary">STAGE_{stages[activeStage].label}</div>
-                <p>{stages[activeStage].text}</p>
+                <div className="font-mono text-xs text-primary">STAGE_{activeStageData.label}</div>
+                <p>{activeStageData.text}</p>
                 <div className="hidden items-center gap-2 font-mono text-xs text-muted-foreground sm:flex">{stages.map((stage, index) => <span key={stage.name} className={index === activeStage ? "text-primary" : ""}>{index === activeStage ? "●" : "○"}</span>)}</div>
               </div>
             </div>
@@ -241,9 +253,9 @@ function LandingPage() {
                 );
               })}
             </div>
-            <div className={`path-preview path-${paths[activePath].id}`}>
-              <div className="flex items-center gap-3"><span className="path-file-icon"><FileCode2 /></span><div><span className="font-mono text-[10px] uppercase text-muted-foreground">Current workspace</span><p className="font-mono text-sm">{paths[activePath].preview}</p></div></div>
-              <pre>{paths[activePath].code}</pre>
+            <div className={`path-preview path-${activePathData.id}`}>
+              <div className="flex items-center gap-3"><span className="path-file-icon"><FileCode2 /></span><div><span className="font-mono text-[10px] uppercase text-muted-foreground">Current workspace</span><p className="font-mono text-sm">{activePathData.preview}</p></div></div>
+              <pre>{activePathData.code}</pre>
               <div className="path-signal"><span /> Ready to practice</div>
             </div>
           </div>
@@ -286,8 +298,8 @@ function LandingPage() {
                 ))}
               </div>
               <div className="project-workspace">
-                <div className="project-toolbar"><div><CircleDot className="text-project" /><span>{projects[activeProject].name}</span><small>/ {projects[activeProject].file}</small></div><span className="build-state"><span /> {projects[activeProject].status}</span></div>
-                <div className="project-code"><div className="project-gutter">01<br />02<br />03<br />04<br />05</div><pre>{projects[activeProject].lines.map((line, index) => <span key={`${line}-${index}`} className={line.startsWith(">") || line.startsWith("$") || line.startsWith("✓") ? "output-line" : ""}>{line || " "}{"\n"}</span>)}</pre></div>
+                <div className="project-toolbar"><div><CircleDot className="text-project" /><span>{activeProjectData.name}</span><small>/ {activeProjectData.file}</small></div><span className="build-state"><span /> {activeProjectData.status}</span></div>
+                <div className="project-code"><div className="project-gutter">01<br />02<br />03<br />04<br />05</div><pre>{activeProjectData.lines.map((line, index) => <span key={`${line}-${index}`} className={line.startsWith(">") || line.startsWith("$") || line.startsWith("✓") ? "output-line" : ""}>{line || " "}{"\n"}</span>)}</pre></div>
                 <div className="project-footer"><span><Terminal /> terminal</span><span><span className="status-dot" /> workspace synced</span></div>
               </div>
             </div>
