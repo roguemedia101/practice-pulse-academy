@@ -190,7 +190,18 @@ function LandingPage() {
                     <div className="line-numbers">1<br />2<br />3<br />4<br />5<br />6<br />7</div>
                     <div className="code-content">
                       <p><span className="syntax-comment"># Change the name, then run your code</span></p>
-                      <p><span className="syntax-variable">name</span> <span className="syntax-operator">=</span> <span className="syntax-string">&quot;{studentName || "developer"}&quot;</span></p>
+                      <p>
+                        <span className="syntax-variable">name</span> <span className="syntax-operator">=</span> <span className="syntax-string">&quot;</span>
+                        <input
+                          className="code-inline-input"
+                          value={studentName}
+                          onChange={(event) => setStudentName(event.target.value.slice(0, 20))}
+                          placeholder="developer"
+                          aria-label="Name used in Python code"
+                          style={{ width: `${Math.max((studentName || "").length, 4)}ch` }}
+                        />
+                        <span className="syntax-string">&quot;</span>
+                      </p>
                       <p>&nbsp;</p>
                       <p><span className="syntax-keyword">def</span> <span className="syntax-function">greet</span>(<span className="syntax-variable">learner</span>):</p>
                       <p>&nbsp;&nbsp;&nbsp;&nbsp;<span className="syntax-keyword">return</span> <span className="syntax-string">f&quot;Hello, {`{learner}`}!&quot;</span></p>
