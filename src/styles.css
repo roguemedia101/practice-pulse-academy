@@ -119,6 +119,11 @@
   .code-editor { @apply grid grid-cols-[38px_1fr] overflow-hidden bg-card py-5 font-mono text-[11px] leading-7 sm:grid-cols-[52px_1fr] sm:py-7 sm:text-sm sm:leading-8; }
   .line-numbers { @apply select-none border-r border-border pr-3 text-right text-muted-foreground/50 sm:pr-4; }
   .code-content { @apply overflow-x-auto px-4 text-foreground sm:px-6; }
+  .code-editor-editable { @apply py-0; }
+  .code-editor-editable .line-numbers { @apply flex flex-col py-5 sm:py-7; }
+  .code-editor-editable .line-numbers span { @apply block h-7 sm:h-8; }
+  .code-textarea { @apply block h-[376px] w-full resize-none overflow-auto border-0 bg-transparent px-4 py-5 font-mono text-[11px] leading-7 text-foreground caret-primary outline-none sm:h-[440px] sm:px-6 sm:py-7 sm:text-sm sm:leading-8; tab-size: 4; }
+  .code-textarea::selection { @apply bg-primary/25; }
   .syntax-comment { @apply text-muted-foreground; }
   .syntax-variable { @apply text-primary; }
   .syntax-operator { @apply text-ai; }
@@ -131,6 +136,7 @@
   .code-inline-input::placeholder { @apply text-security/50; }
   .name-control { @apply absolute -bottom-8 left-3 z-20 flex items-center gap-2 rounded-md border border-border-strong bg-surface-raised p-2 pl-3 font-mono text-[10px] uppercase text-muted-foreground shadow-xl sm:left-8; }
   .name-control input { @apply h-8 w-28 rounded-sm border border-border bg-terminal px-2 font-mono text-xs normal-case text-foreground sm:w-36; }
+  .line-limit-label { @apply absolute -bottom-8 left-3 z-20 flex items-center gap-2 rounded-md border border-border-strong bg-surface-raised px-3 py-2 font-mono text-[10px] uppercase text-muted-foreground shadow-xl sm:left-8; }
   .workspace-badge { @apply absolute -right-2 top-24 z-20 hidden items-center gap-2 rounded-md border border-security/30 bg-surface-raised px-3 py-2 font-mono text-[10px] text-security shadow-xl sm:flex lg:-right-5; }
   .workspace-badge svg { @apply size-3; }
   .workspace-badge span { @apply text-muted-foreground; }

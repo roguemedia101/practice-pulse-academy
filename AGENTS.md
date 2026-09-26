@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep the landing-page Python runner as a browser-only, bounded simulation; this preserves the prototype's lightweight, no-backend scope.

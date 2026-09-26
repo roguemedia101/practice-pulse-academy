@@ -27,6 +27,139 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
+const MAX_CODE_LINES = 12;
+const STARTER_CODE = `# Change the name, then run your code
+name = "PyCademy"
+
+def greet(learner):
+    return f"Hello, {learner}!"
+
+print(greet(name))`;
+
+type SimValue = string | number | boolean;
+type SimFunction = { parameter: string; expression: string };
+
+function trimToLineLimit(value: string) {
+  return value.replace(/\r/g, "").split("\n").slice(0, MAX_CODE_LINES).join("\n");
+}
+
+function splitArguments(value: string) {
+  const argumentsList: string[] = [];
+  let current = "";
+  let depth = 0;
+  let quote = "";
+
+  for (const character of value) {
+    if ((character === '"' || character === "'") && !quote) quote = character;
+    else if (character === quote) quote = "";
+    else if (!quote && character === "(") depth += 1;
+    else if (!quote && character === ")") depth -= 1;
+
+    if (!quote && depth === 0 && character === ",") {
+      argumentsList.push(current.trim());
+      current = "";
+    } else {
+      current += character;
+    }
+  }
+
+  if (current.trim()) argumentsList.push(current.trim());
+  return argumentsList;
+}
+
+function evaluateExpression(
+  expression: string,
+  variables: Record<string, SimValue>,
+  functions: Record<string, SimFunction>,
+  localVariables: Record<string, SimValue> = {},
+): SimValue {
+  const value = expression.trim();
+  const stringMatch = value.match(/^(f?)(["'])(.*)\2$/);
+
+  if (stringMatch) {
+    const [, prefix, , content = ""] = stringMatch;
+    if (prefix !== "f") return content.replace(/\\n/g, "\n");
+    return content.replace(/\{([A-Za-z_]\w*)\}/g, (_, key: string) => {
+      const replacement = localVariables[key] ?? variables[key];
+      if (replacement === undefined) throw new Error(`NameError: name '${key}' is not defined`);
+      return String(replacement);
+    });
+  }
+
+  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
+  if (value === "True") return true;
+  if (value === "False") return false;
+
+  const callMatch = value.match(/^([A-Za-z_]\w*)\((.*)\)$/);
+  if (callMatch) {
+    const [, functionName = "", argumentSource = ""] = callMatch;
+    const definition = functions[functionName];
+    if (!definition) throw new Error(`NameError: name '${functionName}' is not defined`);
+    const argument = evaluateExpression(argumentSource, variables, functions, localVariables);
+    return evaluateExpression(definition.expression, variables, functions, {
+      ...localVariables,
+      [definition.parameter]: argument,
+    });
+  }
+
+  const additiveParts = splitArguments(value.replace(/\+/g, ","));
+  if (value.includes("+") && additiveParts.length > 1) {
+    const results = additiveParts.map((part) => evaluateExpression(part, variables, functions, localVariables));
+    return results.every((result) => typeof result === "number")
+      ? (results as number[]).reduce((total, result) => total + result, 0)
+      : results.join("");
+  }
+
+  const storedValue = localVariables[value] ?? variables[value];
+  if (storedValue !== undefined) return storedValue;
+  throw new Error(`NameError: name '${value}' is not defined`);
+}
+
+function simulatePython(source: string) {
+  const lines = source.split("\n");
+  const variables: Record<string, SimValue> = {};
+  const functions: Record<string, SimFunction> = {};
+  const output: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index] ?? "";
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const functionMatch = line.match(/^def\s+([A-Za-z_]\w*)\((\w+)\):$/);
+    if (functionMatch) {
+      const nextLine = lines[index + 1] ?? "";
+      const returnMatch = nextLine.match(/^\s+return\s+(.+)$/);
+      if (!returnMatch) throw new Error(`Line ${index + 1}: expected an indented return statement`);
+      functions[functionMatch[1] ?? ""] = {
+        parameter: functionMatch[2] ?? "value",
+        expression: returnMatch[1] ?? "",
+      };
+      index += 1;
+      continue;
+    }
+
+    if (/^def\s+/.test(line)) throw new Error(`Line ${index + 1}: SyntaxError in function definition`);
+
+    const printMatch = line.match(/^print\((.*)\)$/);
+    if (printMatch) {
+      const argumentsList = splitArguments(printMatch[1] ?? "");
+      output.push(argumentsList.map((argument) => String(evaluateExpression(argument, variables, functions))).join(" "));
+      continue;
+    }
+
+    const assignmentMatch = line.match(/^([A-Za-z_]\w*)\s*=\s*(.+)$/);
+    if (assignmentMatch) {
+      variables[assignmentMatch[1] ?? ""] = evaluateExpression(assignmentMatch[2] ?? "", variables, functions);
+      continue;
+    }
+
+    throw new Error(`Line ${index + 1}: this lightweight demo supports assignments, functions, and print()`);
+  }
+
+  return `${output.length ? output.join("\n") : "Program finished with no output."}\n✓ Process finished with exit code 0`;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -89,7 +222,7 @@ function Brand() {
 
 function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [studentName, setStudentName] = useState("PyCademy");
+  const [code, setCode] = useState(STARTER_CODE);
   const [output, setOutput] = useState("Ready to run your code.");
   const [running, setRunning] = useState(false);
   const [activeStage, setActiveStage] = useState(0);
@@ -111,9 +244,27 @@ function LandingPage() {
     setRunning(true);
     setOutput("Running main.py...");
     window.setTimeout(() => {
-      setOutput(`Hello, ${studentName || "developer"}!\n✓ Process finished with exit code 0`);
+      try {
+        setOutput(simulatePython(code));
+      } catch (error) {
+        setOutput(error instanceof Error ? `${error.message}\n✕ Process finished with exit code 1` : "Unable to run this code.");
+      }
       setRunning(false);
     }, 650);
+  };
+
+  const handleCodeKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Tab") return;
+    event.preventDefault();
+    const input = event.currentTarget;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const nextCode = `${code.slice(0, start)}    ${code.slice(end)}`;
+    setCode(trimToLineLimit(nextCode));
+    window.requestAnimationFrame(() => {
+      input.selectionStart = start + 4;
+      input.selectionEnd = start + 4;
+    });
   };
 
   const scrollTo = (id: string) => {
@@ -186,28 +337,20 @@ function LandingPage() {
                 </div>
                 <div className="workspace-tabs"><span className="active">main.py</span><span>instructions.md</span></div>
                 <div className="grid min-h-[360px] grid-rows-[1fr_auto] sm:min-h-[430px]">
-                  <div className="code-editor">
-                    <div className="line-numbers">1<br />2<br />3<br />4<br />5<br />6<br />7</div>
-                    <div className="code-content">
-                      <p><span className="syntax-comment"># Change the name, then run your code</span></p>
-                      <p>
-                        <span className="syntax-variable">name</span> <span className="syntax-operator">=</span> <span className="syntax-string">&quot;</span>
-                        <input
-                          className="code-inline-input"
-                          value={studentName}
-                          onChange={(event) => setStudentName(event.target.value.slice(0, 20))}
-                          placeholder="developer"
-                          aria-label="Name used in Python code"
-                          style={{ width: `${Math.max((studentName || "").length, 4)}ch` }}
-                        />
-                        <span className="syntax-string">&quot;</span>
-                      </p>
-                      <p>&nbsp;</p>
-                      <p><span className="syntax-keyword">def</span> <span className="syntax-function">greet</span>(<span className="syntax-variable">learner</span>):</p>
-                      <p>&nbsp;&nbsp;&nbsp;&nbsp;<span className="syntax-keyword">return</span> <span className="syntax-string">f&quot;Hello, {`{learner}`}!&quot;</span></p>
-                      <p>&nbsp;</p>
-                      <p><span className="syntax-function">print</span>(<span className="syntax-function">greet</span>(<span className="syntax-variable">name</span>))<span className="code-cursor" /></p>
+                  <div className="code-editor code-editor-editable">
+                    <div className="line-numbers" aria-hidden="true">
+                      {Array.from({ length: MAX_CODE_LINES }, (_, index) => <span key={index}>{index + 1}</span>)}
                     </div>
+                    <textarea
+                      className="code-textarea"
+                      value={code}
+                      onChange={(event) => setCode(trimToLineLimit(event.target.value))}
+                      onKeyDown={handleCodeKeyDown}
+                      rows={MAX_CODE_LINES}
+                      wrap="off"
+                      spellCheck={false}
+                      aria-label="Editable Python code, maximum 12 lines"
+                    />
                   </div>
                   <div className="border-t border-border bg-terminal">
                     <div className="flex items-center justify-between border-b border-border px-4 py-2 font-mono text-[10px] uppercase text-muted-foreground"><span className="flex items-center gap-2"><Terminal /> Output</span><span>Python 3.12</span></div>
@@ -215,10 +358,7 @@ function LandingPage() {
                   </div>
                 </div>
               </div>
-              <label className="name-control">
-                <span>Try your name</span>
-                <input value={studentName} onChange={(event) => setStudentName(event.target.value.slice(0, 20))} aria-label="Name used in Python code" />
-              </label>
+              <div className="line-limit-label"><span className="status-dot" /> {code.split("\n").length} / {MAX_CODE_LINES} lines</div>
               <div className="workspace-badge"><Zap /> feedback_ready <span>12ms</span></div>
             </div>
           </div>
