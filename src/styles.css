@@ -122,7 +122,12 @@
   .code-editor-editable { @apply py-0; }
   .code-editor-editable .line-numbers { @apply flex flex-col py-5 sm:py-7; }
   .code-editor-editable .line-numbers span { @apply block h-7 sm:h-8; }
-  .code-textarea { @apply block h-[376px] w-full resize-none overflow-auto border-0 bg-transparent px-4 py-5 font-mono text-[11px] leading-7 text-foreground caret-primary outline-none sm:h-[440px] sm:px-6 sm:py-7 sm:text-sm sm:leading-8; tab-size: 4; }
+  .code-input-layer { @apply relative min-w-0; }
+  .code-highlight, .code-textarea { @apply h-[376px] w-full overflow-auto whitespace-pre border-0 bg-transparent px-4 py-5 font-mono text-[11px] leading-7 outline-none sm:h-[440px] sm:px-6 sm:py-7 sm:text-sm sm:leading-8; tab-size: 4; }
+  .code-highlight { @apply pointer-events-none absolute inset-0 m-0 text-foreground; scrollbar-width: none; }
+  .code-highlight::-webkit-scrollbar { display: none; }
+  .code-highlight-line { @apply block h-7 sm:h-8; }
+  .code-textarea { @apply relative z-10 block resize-none caret-primary; color: transparent; }
   .code-textarea::selection { @apply bg-primary/25; }
   .syntax-comment { @apply text-muted-foreground; }
   .syntax-variable { @apply text-primary; }

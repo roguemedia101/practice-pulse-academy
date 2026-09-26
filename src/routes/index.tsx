@@ -23,7 +23,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -41,6 +41,41 @@ type SimFunction = { parameter: string; expression: string };
 
 function trimToLineLimit(value: string) {
   return value.replace(/\r/g, "").split("\n").slice(0, MAX_CODE_LINES).join("\n");
+}
+
+function highlightedPython(source: string) {
+  const tokenPattern = /(#.*|f?"(?:\\.|[^"\\])*"|f?'(?:\\.|[^'\\])*'|\b(?:def|return|print|True|False)\b|\b\d+(?:\.\d+)?\b|[=+():,]|\b[A-Za-z_]\w*(?=\s*\()|\b[A-Za-z_]\w*)/g;
+
+  return source.split("\n").map((line, lineIndex) => {
+    const tokens = [];
+    let cursor = 0;
+
+    for (const match of line.matchAll(tokenPattern)) {
+      const token = match[0];
+      const index = match.index ?? 0;
+      if (index > cursor) tokens.push(line.slice(cursor, index));
+
+      const className = token.startsWith("#")
+        ? "syntax-comment"
+        : /^f?["']/.test(token)
+          ? "syntax-string"
+          : /^(def|return|print|True|False)$/.test(token)
+            ? "syntax-keyword"
+            : /^\d/.test(token)
+              ? "syntax-number"
+              : /^[=+():,]$/.test(token)
+                ? "syntax-operator"
+                : line.slice(index + token.length).match(/^\s*\(/)
+                  ? "syntax-function"
+                  : "syntax-variable";
+
+      tokens.push(<span className={className} key={`${lineIndex}-${index}`}>{token}</span>);
+      cursor = index + token.length;
+    }
+
+    if (cursor < line.length) tokens.push(line.slice(cursor));
+    return <span className="code-highlight-line" key={lineIndex}>{tokens.length ? tokens : " "}{"\n"}</span>;
+  });
 }
 
 function splitArguments(value: string) {
@@ -229,6 +264,7 @@ function LandingPage() {
   const [activePath, setActivePath] = useState(0);
   const [tutorStep, setTutorStep] = useState(0);
   const [activeProject, setActiveProject] = useState(2);
+  const codeHighlightRef = useRef<HTMLPreElement>(null);
   const activeStageData = stages[activeStage] ?? stages[0];
   const activePathData = paths[activePath] ?? paths[0];
   const activeProjectData = projects[activeProject] ?? projects[0];
@@ -341,16 +377,24 @@ function LandingPage() {
                     <div className="line-numbers" aria-hidden="true">
                       {Array.from({ length: MAX_CODE_LINES }, (_, index) => <span key={index}>{index + 1}</span>)}
                     </div>
-                    <textarea
-                      className="code-textarea"
-                      value={code}
-                      onChange={(event) => setCode(trimToLineLimit(event.target.value))}
-                      onKeyDown={handleCodeKeyDown}
-                      rows={MAX_CODE_LINES}
-                      wrap="off"
-                      spellCheck={false}
-                      aria-label="Editable Python code, maximum 12 lines"
-                    />
+                    <div className="code-input-layer">
+                      <pre ref={codeHighlightRef} className="code-highlight" aria-hidden="true">{highlightedPython(code)}</pre>
+                      <textarea
+                        className="code-textarea"
+                        value={code}
+                        onChange={(event) => setCode(trimToLineLimit(event.target.value))}
+                        onKeyDown={handleCodeKeyDown}
+                        onScroll={(event) => {
+                          if (!codeHighlightRef.current) return;
+                          codeHighlightRef.current.scrollTop = event.currentTarget.scrollTop;
+                          codeHighlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                        }}
+                        rows={MAX_CODE_LINES}
+                        wrap="off"
+                        spellCheck={false}
+                        aria-label="Editable Python code, maximum 12 lines"
+                      />
+                    </div>
                   </div>
                   <div className="border-t border-border bg-terminal">
                     <div className="flex items-center justify-between border-b border-border px-4 py-2 font-mono text-[10px] uppercase text-muted-foreground"><span className="flex items-center gap-2"><Terminal /> Output</span><span>Python 3.12</span></div>
