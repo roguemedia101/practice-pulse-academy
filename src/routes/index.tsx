@@ -249,7 +249,7 @@ const navItems = [
 function Brand() {
   return (
     <a href="#top" className="group flex items-center gap-2.5" aria-label="PyCademy home">
-      <span className="logo-mark"><span>{"<"}</span>_</span>
+      <span className="logo-mark"><span>{">"}</span>_</span>
       <span className="font-display text-[1.08rem] font-semibold text-foreground">PyCademy</span>
     </a>
   );
